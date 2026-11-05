@@ -15,22 +15,22 @@
 <main class="wrap">
   <header>
     <p class="brand">Envelope Check</p>
-    <h1>Can someone send email pretending to be you?</h1>
-    <p class="lede">Check your organisation's public email security settings and get clear steps to fix what's missing. It's free, and you don't need a security team.</p>
+    <h1>Follow a fake email sent in your name.</h1>
+    <p class="lede">See how your domain's public settings would treat a forged email, spot lookalike domains, and get a fix plan you can follow or pass to your IT provider. It's free, and no email is sent.</p>
   </header>
-  <form id="check-form" novalidate>
+  <form id="check-form" class="envelope-form" novalidate>
     <label for="domain">Your email domain</label>
     <div class="field">
       <input id="domain" name="domain" type="text" inputmode="url" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="yourcharity.org.uk" aria-describedby="domain-hint form-message">
-      <button id="check-button" type="submit">Check my email security</button>
+      <button id="check-button" type="submit">Follow the fake email</button>
     </div>
     <p id="domain-hint" class="hint">Use the part after the @ in your email address. We only read public DNS records.</p>
     <p id="form-message" role="alert"></p>
   </form>
   <section id="results" aria-live="polite" aria-label="Results"></section>
   <footer>
-    <p><strong>What this checks:</strong> Public DNS settings for SPF, DKIM at common names, DMARC, MTA-STS, TLS reporting, DNSSEC and CAA. It doesn't scan your systems or test your mailboxes, passwords or Microsoft 365 settings, so a good result doesn't mean you're fully protected.</p>
-    <p><strong>Privacy:</strong> We don't run a server or store your results. Your browser asks Cloudflare DNS, or Google Public DNS as a backup, to look up the domain. Fonts load from Google Fonts.</p>
+    <p><strong>What this checks:</strong> Public DNS settings for SPF, DKIM at common names, DMARC, MTA-STS, TLS reporting, DNSSEC and CAA, plus lookalike domain names if you ask. It doesn't scan your systems or test your mailboxes, passwords or Microsoft 365 settings, so a good result doesn't mean you're fully protected.</p>
+    <p><strong>Privacy:</strong> We don't run a server or collect your results. Your fix progress and last result stay in this browser. Your browser asks Cloudflare DNS, or Google Public DNS as a backup, to look up the domain. Fonts load from Google Fonts.</p>
     <p>Check any changes with your IT provider before you make them. <a href="https://github.com/arslanasud/envelope-check" target="_blank" rel="noopener noreferrer">View the open-source code</a>.</p>
   </footer>
 </main>

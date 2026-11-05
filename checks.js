@@ -464,6 +464,139 @@
   }
 
   /**
+   * Works out what public records would tell a mail system about a forged email
+   * that claims to be from this domain. Nothing is sent. Every mail system makes
+   * its own final decision, so the page describes this as a simulation.
+   */
+  function simulateForgery(domain, data) {
+    const spfRecords = data.spf.ok ? data.spf.records.filter((r) => /^v=spf1(\s|$)/i.test(r.trim())) : [];
+    let spf;
+    let spfOpen = false;
+    if (!data.spf.ok) spf = { state: "unknown", label: "Couldn't check", text: "The lookup failed." };
+    else if (spfRecords.length !== 1) spf = { state: "open", label: "No clear check", text: spfRecords.length ? "Duplicate records make SPF return an error." : "There's no list of allowed senders to compare it with." };
+    else if (/\s\+?all(\s|$)/i.test(spfRecords[0])) {
+      spfOpen = true;
+      spf = { state: "open", label: "Let through", text: "Your record allows any server to send." };
+    } else spf = { state: "caught", label: "Flagged", text: "The fake sender's server isn't on your list." };
+
+    const dkim = { state: "caught", label: "Flagged", text: "The fake email can't carry a valid signature for your domain." };
+
+    let found = null;
+    let dmarcFailed = false;
+    for (const l of data.dmarc) {
+      if (!l.ok) { dmarcFailed = true; break; }
+      const hits = l.records.filter((r) => /^v=dmarc1\s*(;|$)/i.test(r.trim()));
+      if (hits.length) { found = { name: l.name, hits }; break; }
+    }
+    let policy = null;
+    let pct = 100;
+    if (found && found.hits.length === 1) {
+      const tags = parseTags(found.hits[0]);
+      policy = ((found.name !== domain && tags.sp) || tags.p || "").toLowerCase();
+      if (!["none", "quarantine", "reject"].includes(policy)) policy = null;
+      if (tags.pct !== undefined && Number(tags.pct) < 100) pct = Number(tags.pct);
+    }
+
+    let dmarc;
+    let outcome;
+    if (dmarcFailed || !data.spf.ok) {
+      dmarc = dmarcFailed ? { state: "unknown", label: "Couldn't check", text: "The lookup failed." } : { state: "unknown", label: "Not assessed", text: "We need the SPF result first." };
+      outcome = { level: "unknown", stamp: "Unknown", title: "We couldn't finish this simulation", text: "A lookup failed, so try again in a minute." };
+    } else if (spfOpen) {
+      dmarc = { state: "open", label: "Passes it", text: "Because SPF passed for your domain, DMARC can pass too." };
+      outcome = { level: "open", stamp: "May get through", title: "A fake email could pass your checks", text: "Your SPF record lets any server pass, so your DMARC policy may not stop it." };
+    } else if (!policy) {
+      dmarc = { state: "open", label: "No instruction", text: found ? "Your DMARC setup isn't valid." : "You have no DMARC policy." };
+      outcome = { level: "open", stamp: "May get through", title: "A fake email could reach an inbox", text: "Your domain gives no instruction, so each mail system's own filters decide." };
+    } else if (policy === "none") {
+      dmarc = { state: "open", label: "No action", text: "Your p=none policy only asks for monitoring." };
+      outcome = { level: "open", stamp: "May get through", title: "A fake email could reach an inbox", text: "Your domain asks for no enforcement, so each mail system's own filters decide." };
+    } else if (pct < 100) {
+      dmarc = { state: "open", label: `Applies to ${pct}%`, text: `Your policy covers only ${pct}% of failing email.` };
+      outcome = { level: "open", stamp: "May get through", title: "Some fake emails could reach an inbox", text: "Your policy doesn't cover all failing email." };
+    } else if (policy === "quarantine") {
+      dmarc = { state: "caught", label: "Sends to spam", text: "Your policy asks mail systems to treat it as suspicious." };
+      outcome = { level: "spam", stamp: "Spam folder", title: "A fake email should be treated as suspicious", text: "Mail systems are asked to quarantine it, which usually means the spam folder." };
+    } else {
+      dmarc = { state: "caught", label: "Blocks it", text: "Your policy asks mail systems to reject it." };
+      outcome = { level: "blocked", stamp: "Rejected", title: "A fake email should be rejected", text: "Mail systems are asked to refuse email that fails these checks." };
+    }
+    return { gates: [{ name: "SPF", ...spf }, { name: "DKIM", ...dkim }, { name: "DMARC", ...dmarc }], outcome };
+  }
+
+  /** Puts the jobs in order: real problems, improvements, then manual checks. */
+  function buildPlan(checks) {
+    const order = { fail: 0, warn: 1, unknown: 2 };
+    return checks
+      .filter((c) => c.fix && order[c.status] !== undefined)
+      .sort((a, b) => order[a.status] - order[b.status])
+      .map((c) => ({ key: c.id + ":" + c.headline, id: c.id, title: c.title, headline: c.headline, status: c.status }));
+  }
+
+  /** A plain record of one result, small enough to keep in the browser. */
+  function summarise(report, when) {
+    const statuses = {};
+    report.checks.forEach((c) => { statuses[c.id] = { status: c.status, title: c.title }; });
+    return { when, statuses, outcome: report.simulation ? report.simulation.outcome.level : null };
+  }
+
+  /** Compares two summaries. Returns improvements and new problems. */
+  function compareSummaries(before, after) {
+    const rank = { fail: 0, warn: 1, unknown: 1, pass: 2 };
+    const improved = [];
+    const worse = [];
+    Object.keys(after.statuses).forEach((id) => {
+      const old = before.statuses[id];
+      const now = after.statuses[id];
+      if (!old) return;
+      if (rank[now.status] > rank[old.status]) improved.push(now.title);
+      if (rank[now.status] < rank[old.status]) worse.push(now.title);
+    });
+    return { improved, worse };
+  }
+
+  /** A message someone can send to the person who manages their email or DNS. */
+  function buildHandover(report) {
+    const jobs = report.checks.filter((c) => c.fix && (c.status === "fail" || c.status === "warn" || c.status === "unknown"));
+    const lines = [`Hello,`, ``, `I ran a public email security check on ${report.domain}. Please could you review these items?`, ``];
+    if (!jobs.length) lines.push("The check found nothing in the main settings that needs action.");
+    jobs.forEach((c, i) => {
+      lines.push(`${i + 1}. ${c.title}: ${c.headline}`, `   ${c.detail}`);
+      c.fix.steps.forEach((step) => lines.push(`   - ${step}`));
+      if (c.fix.record) lines.push(`   Suggested ${c.fix.record.type} record at ${c.fix.record.host}: ${c.fix.record.value}`);
+      lines.push("");
+    });
+    lines.push("Please confirm these suit our setup before making changes, because incorrect records can affect email delivery.", "", "Thank you");
+    return lines.join("\n");
+  }
+
+  /** Common typing tricks applied to the first part of a domain, plus other endings. */
+  function lookalikeCandidates(domain, limit) {
+    const parts = domain.split(".");
+    const name = parts[0];
+    const ending = parts.slice(1).join(".");
+    const out = new Set();
+    const add = (label, end) => {
+      if (/^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$/.test(label) && label.length > 1) out.add(label + "." + (end || ending));
+    };
+    const swaps = [["l", "1"], ["i", "l"], ["o", "0"], ["m", "rn"], ["w", "vv"], ["e", "3"]];
+    swaps.forEach(([from, to]) => {
+      let at = name.indexOf(from);
+      while (at !== -1) {
+        add(name.slice(0, at) + to + name.slice(at + from.length));
+        at = name.indexOf(from, at + 1);
+      }
+    });
+    add(name.replace(/rn/g, "m"));
+    ["com", "org", "net", "co.uk", "org.uk", "uk", "info"].forEach((end) => { if (end !== ending) add(name, end); });
+    for (let i = 0; i < name.length - 1; i++) add(name.slice(0, i) + name[i + 1] + name[i] + name.slice(i + 2));
+    for (let i = 0; i < name.length; i++) add(name.slice(0, i) + name.slice(i + 1));
+    for (let i = 1; i < name.length; i++) add(name.slice(0, i) + "-" + name.slice(i));
+    out.delete(domain);
+    return [...out].slice(0, limit || 40);
+  }
+
+  /**
    * Builds the full report.
    * data = { mx, spf: lookup, dmarc: [lookups], dkim: [lookups] }
    * where a lookup is { ok, records, nx } and failed lookups have ok: false.
@@ -471,7 +604,7 @@
   function buildReport(domain, data) {
     const provider = data.mx.ok ? detectProvider(data.mx.records) : "other";
     if (data.mx.ok && data.mx.nx && data.spf.ok && data.spf.nx) {
-      return { domain, provider, noMail: false, checks: [], extras: [], verdict: { level: "unknown", title: "This domain doesn't exist", text: `DNS has no record of ${domain}. Check the spelling and try again.` } };
+      return { domain, provider, noMail: false, checks: [], extras: [], plan: [], simulation: null, verdict: { level: "unknown", title: "This domain doesn't exist", text: `DNS has no record of ${domain}. Check the spelling and try again.` } };
     }
     const noMail = data.mx.ok && (data.mx.records.length === 0 || isNullMx(data.mx.records));
     const checks = [
@@ -496,8 +629,9 @@
       checkDnssec(data.mx),
       checkCaa(data.caa),
     ] : [];
-    return { domain, provider, noMail, checks, extras, verdict };
+    const simulation = simulateForgery(domain, data);
+    return { domain, provider, noMail, checks, extras, verdict, simulation, plan: buildPlan(checks) };
   }
 
-  return { DKIM_SELECTORS, normalizeDomain, dmarcCandidates, detectProvider, isNullMx, spfTerms, dkimKeyInfo, checkSpf, checkDmarc, checkDkim, checkMtaSts, checkTlsRpt, checkDnssec, checkCaa, buildReport };
+  return { DKIM_SELECTORS, normalizeDomain, dmarcCandidates, detectProvider, isNullMx, spfTerms, dkimKeyInfo, checkSpf, checkDmarc, checkDkim, checkMtaSts, checkTlsRpt, checkDnssec, checkCaa, simulateForgery, buildPlan, summarise, compareSummaries, buildHandover, lookalikeCandidates, buildReport };
 });

@@ -84,6 +84,35 @@
     return result;
   }
 
+  /**
+   * Checks whether lookalike names exist. This is a DNS lookup only, with no
+   * contact with those domains. A few run at a time to stay polite to the DNS services.
+   */
+  async function findLookalikes(domain, fetchFn, onProgress) {
+    const f = fetchFn || ((...args) => fetch(...args));
+    const names = Checks.lookalikeCandidates(domain);
+    const found = [];
+    let failed = 0;
+    let done = 0;
+    let next = 0;
+    async function worker() {
+      while (next < names.length) {
+        const name = names[next++];
+        const answer = await lookup(name, "MX", f);
+        if (!answer.ok) failed++;
+        else if (!answer.nx) {
+          const canMail = answer.records.length > 0 && !Checks.isNullMx(answer.records);
+          found.push({ name, canMail });
+        }
+        done++;
+        if (onProgress) onProgress(done, names.length);
+      }
+    }
+    await Promise.all([1, 2, 3, 4, 5, 6].map(worker));
+    found.sort((a, b) => Number(b.canMail) - Number(a.canMail) || a.name.localeCompare(b.name));
+    return { checked: names.length, failed, found };
+  }
+
   /** Runs every lookup for one domain and returns the data for buildReport. */
   async function gather(domain, fetchFn) {
     const f = fetchFn || ((...args) => fetch(...args));
@@ -102,5 +131,5 @@
     return { mx, spf, dmarc, dkim, mtaSts, tlsRpt, caa, spfTree: tree };
   }
 
-  return { joinTxt, readCaa, parseAnswer, lookup, spfTree, gather };
+  return { joinTxt, readCaa, parseAnswer, lookup, spfTree, findLookalikes, gather };
 });

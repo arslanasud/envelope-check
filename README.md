@@ -4,6 +4,14 @@ A free, open-source website that helps small charities and businesses check thei
 
 Many small organisations don't have a security team. Existing tools can show that a DNS record is missing, but it can still be hard to know what to do next. Envelope Check explains the result and gives steps based on the email service the domain appears to use.
 
+## What makes it different
+
+- **Fake email journey:** A picture shows what public records tell mail systems about a forged email. No email is sent.
+- **Lookalike finder:** Looks up common misspellings and other endings of a domain, using DNS only.
+- **Fix plan:** Puts jobs in priority order, with progress saved in the person's own browser.
+- **Before and after:** Checking again shows what has improved since the last check on that browser.
+- **Handover message:** Creates a message to send to an IT provider.
+
 ## What it checks
 
 | Check | What it tells you |
@@ -26,11 +34,13 @@ It recognises Microsoft 365 and Google Workspace from the domain's MX records an
 - It doesn't send or inspect email, and it doesn't check DMARC alignment.
 - It doesn't run port scans or attack tests. These can be illegal without permission, so any future active check must first verify domain ownership.
 - It reads public DNS only. It doesn't check mailboxes, passwords, MFA or Microsoft 365 settings.
+- The fake email journey is a simulation. Each mail system makes its own final decision.
+- The lookalike finder only tries a limited set of variations on the first part of the domain. A registered lookalike isn't necessarily malicious.
 - A good result doesn't mean an organisation is fully protected.
 
 ## Privacy
 
-There's no server, account, analytics or results database. The browser sends the domain to Cloudflare DNS, or Google Public DNS as a backup, for the lookup. Fonts load from Google Fonts.
+There's no server, account, analytics or results database. Fix progress and the last result are saved only in the person's browser. The browser sends the domain to Cloudflare DNS, or Google Public DNS as a backup, for the lookup. Fonts load from Google Fonts.
 
 ## Run it
 
