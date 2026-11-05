@@ -17,6 +17,10 @@
     spf: { ok: true, records: ["v=spf1 include:spf.protection.outlook.com ~all"] },
     dmarc: [{ name: "example.org", ok: true, records: ["v=DMARC1; p=none"] }],
     dkim: window.EnvelopeChecks.DKIM_SELECTORS.map((selector) => ({ selector, ...none })),
+    mtaSts: none,
+    tlsRpt: none,
+    caa: [{ name: "example.org", ...none }],
+    spfTree: { lookups: 1, broken: [], includes: ["spf.protection.outlook.com"], incomplete: false },
   });
 
   // Builds elements using text only. DNS records can contain anything, so they
@@ -38,6 +42,7 @@
     warn: "Improve",
     fail: "Fix this",
     unknown: "Check manually",
+    optional: "Optional",
   };
 
   function copyButton(text, label) {
@@ -93,14 +98,18 @@
     let context = null;
     if (providerName) context = "Your email appears to use " + providerName + ", so the fixes are tailored to it.";
     if (report.noMail) context = "This domain doesn't appear to receive email, so the fixes are for a domain that sends no email.";
-    results.replaceChildren(
+    results.replaceChildren(...[
       el("div", { class: "summary", "data-status": report.verdict.level },
         isExample ? el("p", { class: "example-tag" }, "Example result for a test domain") : null,
         el("p", { class: "summary-domain" }, report.domain),
         el("h2", { tabindex: "-1", id: "verdict" }, report.verdict.title),
         el("p", {}, report.verdict.text),
         context ? el("p", { class: "context" }, context) : null),
-      ...report.checks.map(renderCheck));
+      ...report.checks.map(renderCheck),
+      report.extras.length ? el("div", { class: "extras-heading" },
+        el("h2", {}, "Extra protections"),
+        el("p", {}, "These don't affect the overall result above. Fix the main settings first.")) : null,
+      ...report.extras.map(renderCheck)].filter(Boolean));
   }
 
   form.addEventListener("submit", async (event) => {

@@ -8,16 +8,23 @@ Many small organisations don't have a security team. Existing tools can show tha
 
 | Check | What it tells you |
 |---|---|
-| **SPF** | Whether the domain lists who may send its email, including missing, duplicate and overly permissive records |
-| **DKIM** | Whether a signing key is published at common selector names |
-| **DMARC** | Whether the domain has a policy for failing email, how strict it is, and whether reports are requested |
+| **SPF** | Whether the domain lists who may send its email, including missing, duplicate, broken and overly permissive records, very large IP ranges, and the total lookups including nested ones |
+| **DKIM** | Whether a signing key is published at common selector names, and whether an RSA key is weak |
+| **DMARC** | Whether the domain has a policy for failing email, how strict it is, whether reports are requested, and whether subdomains are left open |
+| **MTA-STS** | Whether the DNS record that asks for encrypted email delivery is present |
+| **TLS reporting** | Whether the domain asks for reports about encrypted delivery failures |
+| **DNSSEC** | Whether the DNS service validated a signed answer |
+| **CAA** | Whether the domain limits which companies can issue its certificates |
 
 It recognises Microsoft 365 and Google Workspace from the domain's MX records and adjusts its guidance.
 
 ## Known limits
 
 - It can't prove that DKIM is off, because DNS can't list every selector. It reports this as a manual check.
-- It only counts SPF lookups in the main record, not nested ones.
+- SPF lookup counts follow include and redirect entries, but don't count the extra address lookups an MX entry may trigger.
+- It reads the MTA-STS DNS record, but not the policy file.
+- It doesn't send or inspect email, and it doesn't check DMARC alignment.
+- It doesn't run port scans or attack tests. These can be illegal without permission, so any future active check must first verify domain ownership.
 - It reads public DNS only. It doesn't check mailboxes, passwords, MFA or Microsoft 365 settings.
 - A good result doesn't mean an organisation is fully protected.
 
@@ -54,8 +61,6 @@ Your site will appear at `https://YOUR-USERNAME.github.io/envelope-check/`.
 
 ## Roadmap
 
-- Count nested SPF lookups
-- Add MTA-STS and TLS reporting checks
 - Add fix guides for more email services and DNS providers
 - Add a volunteer mode for people helping several organisations
 

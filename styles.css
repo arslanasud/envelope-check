@@ -71,10 +71,14 @@ input { flex: 1 1 15rem; min-width: 0; padding: .8rem .9rem; font: 1.0625rem var
 [data-status="pass"] .pill { color: var(--pass); background: var(--pass-bg); }
 [data-status="warn"] .pill { color: var(--warn); background: var(--warn-bg); }
 [data-status="fail"] .pill { color: var(--fail); background: var(--fail-bg); }
-[data-status="unknown"] .pill { color: var(--unknown); background: var(--unknown-bg); }
+[data-status="unknown"] .pill, [data-status="optional"] .pill { color: var(--unknown); background: var(--unknown-bg); }
 [data-status="warn"] .dot { border-radius: 1px; }
 [data-status="fail"] .dot { border-radius: 0; transform: rotate(45deg); }
 [data-status="unknown"] .dot { background: transparent; border: 2px solid currentColor; }
+[data-status="optional"] .dot { height: .15rem; border-radius: 1px; }
+.extras-heading { display: grid; gap: .25rem; margin-top: 1.25rem; }
+.extras-heading h2 { font-size: 1.5rem; font-weight: 800; }
+.extras-heading p { color: var(--muted); }
 details summary { cursor: pointer; color: var(--accent); font-size: .9375rem; }
 code { font-family: var(--mono); font-size: .875rem; overflow-wrap: anywhere; }
 .found { display: grid; gap: .4rem; margin-top: .5rem; }
