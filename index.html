@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Envelope Check</title>
+<meta name="description" content="A free check of the public email security settings for small organisations, with plain-English fixes.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=JetBrains+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="airmail" aria-hidden="true"></div>
+<main class="wrap">
+  <header>
+    <p class="brand">Envelope Check</p>
+    <h1>Can someone send email pretending to be you?</h1>
+    <p class="lede">Check your organisation's public email security settings and get clear steps to fix what's missing. It's free, and you don't need a security team.</p>
+  </header>
+  <form id="check-form" novalidate>
+    <label for="domain">Your email domain</label>
+    <div class="field">
+      <input id="domain" name="domain" type="text" inputmode="url" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="yourcharity.org.uk" aria-describedby="domain-hint form-message">
+      <button id="check-button" type="submit">Check my email security</button>
+    </div>
+    <p id="domain-hint" class="hint">Use the part after the @ in your email address. We only read public DNS records.</p>
+    <p id="form-message" role="alert"></p>
+  </form>
+  <section id="results" aria-live="polite" aria-label="Results"></section>
+  <footer>
+    <p><strong>What this checks:</strong> SPF, DKIM at common names, and DMARC. It doesn't test your mailboxes, passwords or Microsoft 365 settings, so a good result doesn't mean you're fully protected.</p>
+    <p><strong>Privacy:</strong> We don't run a server or store your results. Your browser asks Cloudflare DNS, or Google Public DNS as a backup, to look up the domain. Fonts load from Google Fonts.</p>
+    <p>Check any changes with your IT provider before you make them. <a href="https://github.com/arslanasud/envelope-check" target="_blank" rel="noopener noreferrer">View the open-source code</a>.</p>
+  </footer>
+</main>
+<script src="checks.js"></script>
+<script src="dns.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
