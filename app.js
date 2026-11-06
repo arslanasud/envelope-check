@@ -3,7 +3,7 @@
   "use strict";
   const Checks = window.EnvelopeChecks;
   const { normalizeDomain, buildReport, summarise, compareSummaries, buildHandover } = Checks;
-  const { gather, findLookalikes } = window.EnvelopeDns;
+  const { gather, findLookalikes, probeHttps, gatherSpoofability } = window.EnvelopeDns;
 
   const form = document.getElementById("check-form");
   const input = document.getElementById("domain");
@@ -225,7 +225,77 @@
       check.records && check.records.length ? el("details", {},
         el("summary", {}, "See what we found"),
         el("div", { class: "found" }, check.records.map((record) => el("code", {}, record)))) : null,
-      check.fix ? renderFix(check.fix) : null);
+      check.fix ? renderFix(check.fix) : null,
+      !check.fix && check.links && check.links.length ? el("p", { class: "links" },
+        el("strong", {}, "Full reports: "),
+        check.links.map((link) => el("a", { href: link.href, target: "_blank", rel: "noopener noreferrer" }, link.label))) : null);
+  }
+
+  function renderWebsite(report) {
+    const output = el("div", { class: "website-output", "aria-live": "polite" });
+    const start = el("button", { type: "button", class: "secondary", id: "website-button" }, "Check my website's HTTPS");
+    start.addEventListener("click", async () => {
+      start.disabled = true;
+      start.textContent = "Checking…";
+      const check = Checks.checkWebsite(await probeHttps(report.domain));
+      start.hidden = true;
+      output.replaceChildren(renderCheck(check));
+    });
+    return el("section", { class: "website", "aria-label": "Website check" },
+      el("h2", {}, "Is your website secure?"),
+      el("p", {}, "A basic, optional check of whether your website answers over an encrypted HTTPS connection. Your browser's security rules stop it reading the finer details, so it also links you to full reports."),
+      start,
+      output);
+  }
+
+  function renderSupplier() {
+    const field = el("input", { type: "text", id: "supplier-domain", inputmode: "url", autocomplete: "off", autocapitalize: "none", spellcheck: "false", placeholder: "theircompany.com", "aria-describedby": "supplier-hint" });
+    const go = el("button", { type: "button", class: "secondary" }, "Check this sender");
+    const output = el("div", { class: "supplier-output", "aria-live": "polite" });
+    const run = async () => {
+      const domain = normalizeDomain(field.value);
+      if (!domain) {
+        output.replaceChildren(el("p", { class: "inline-error" }, "Enter a domain, such as theircompany.com."));
+        field.focus();
+        return;
+      }
+      go.disabled = true;
+      go.textContent = "Checking…";
+      try {
+        const data = await gatherSpoofability(domain);
+        if (!data.spf.ok && data.dmarc.every((l) => !l.ok)) {
+          output.replaceChildren(el("p", { class: "inline-error" }, "We couldn't reach the DNS services. Try again in a minute."));
+          return;
+        }
+        const verdict = Checks.checkSupplier(Checks.simulateForgery(domain, data));
+        output.replaceChildren(el("article", { class: "check supplier-result", "data-status": verdict.level },
+          el("header", {},
+            el("div", {}, el("p", { class: "summary-domain" }, domain), el("p", { class: "headline" }, verdict.headline)),
+            el("span", { class: "pill" }, el("span", { class: "dot", "aria-hidden": "true" }), STATUS[verdict.level])),
+          el("p", {}, verdict.detail),
+          el("div", { class: "fix" },
+            el("h4", {}, "Protect yourself"),
+            el("ul", {}, verdict.advice.map((a) => el("li", {}, a))))));
+      } finally {
+        go.disabled = false;
+        go.textContent = "Check this sender";
+      }
+    };
+    go.addEventListener("click", run);
+    field.addEventListener("keydown", (event) => { if (event.key === "Enter") { event.preventDefault(); run(); } });
+    return el("section", { class: "supplier", "aria-label": "Check a sender" },
+      el("h2", {}, "Got an email asking about money?"),
+      el("p", {}, "If an organisation emails you about an invoice, a payment or a change of bank details, check whether their domain can be easily faked before you act. We only read their public records and never contact them."),
+      el("div", { class: "field" }, field, go),
+      el("p", { id: "supplier-hint", class: "hint" }, "Enter the part after the @ in their email address."),
+      output);
+  }
+
+  function renderLoading(domain) {
+    results.replaceChildren(el("div", { class: "loading", role: "status" },
+      el("div", { class: "loading-env", "aria-hidden": "true" }, envelopeIcon()),
+      el("p", { class: "loading-text" }, "Checking " + domain + "…"),
+      el("p", { class: "plan-note" }, "Reading public DNS records. This usually takes a few seconds.")));
   }
 
   function render(report, isExample, previous) {
@@ -251,6 +321,8 @@
       renderJourney(report),
       renderPlan(report, isExample),
       isExample ? null : renderLookalikes(report),
+      isExample ? null : renderWebsite(report),
+      isExample ? null : renderSupplier(),
       el("h2", { class: "section-title" }, "The details"),
       ...report.checks.map(renderCheck),
       report.extras.length ? el("div", { class: "extras-heading" },
@@ -258,6 +330,14 @@
         el("p", {}, "These don't affect the overall result above. Fix the main settings first.")) : null,
       ...report.extras.map(renderCheck),
     ].filter(Boolean));
+
+    // A gentle staggered entrance, only for real results (not the resting example).
+    if (!isExample) {
+      Array.from(results.children).forEach((child, i) => {
+        child.classList.add("reveal");
+        child.style.animationDelay = Math.min(i * 70, 560) + "ms";
+      });
+    }
   }
 
   form.addEventListener("submit", async (event) => {
@@ -272,6 +352,7 @@
     button.disabled = true;
     button.textContent = "Checking…";
     results.setAttribute("aria-busy", "true");
+    renderLoading(domain);
     try {
       const data = await gather(domain);
       const allFailed = !data.mx.ok && !data.spf.ok && data.dmarc.every((l) => !l.ok) && data.dkim.every((l) => !l.ok);

@@ -131,5 +131,46 @@
     return { mx, spf, dmarc, dkim, mtaSts, tlsRpt, caa, spfTree: tree };
   }
 
-  return { joinTxt, readCaa, parseAnswer, lookup, spfTree, findLookalikes, gather };
+  /**
+   * Tries to reach a site over HTTPS. "no-cors" means the browser won't let us
+   * read the response, so we only learn whether the connection completed, not any
+   * header, status or redirect. A timeout stops a slow site hanging the page.
+   * Returns https: "ok" when the connection completed, "unknown" otherwise. It
+   * never returns a failure, because a browser can't tell a missing HTTPS site
+   * apart from one that simply blocks cross-site requests.
+   */
+  async function probeHttps(domain, fetchFn) {
+    const f = fetchFn || ((...args) => fetch(...args));
+    const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
+    const timer = controller ? setTimeout(() => controller.abort(), 8000) : null;
+    try {
+      await f("https://" + domain + "/favicon.ico", {
+        mode: "no-cors",
+        cache: "no-store",
+        redirect: "follow",
+        signal: controller ? controller.signal : undefined,
+      });
+      return { https: "ok" };
+    } catch (_) {
+      return { https: "unknown" };
+    } finally {
+      if (timer) clearTimeout(timer);
+    }
+  }
+
+  /**
+   * A lighter set of lookups for the supplier / invoice-fraud check: only the
+   * SPF and DMARC records needed to judge whether a sender can be impersonated.
+   */
+  async function gatherSpoofability(domain, fetchFn) {
+    const f = fetchFn || ((...args) => fetch(...args));
+    const names = Checks.dmarcCandidates(domain);
+    const [spf, dmarc] = await Promise.all([
+      lookup(domain, "TXT", f),
+      Promise.all(names.map(async (name) => ({ name, ...(await lookup("_dmarc." + name, "TXT", f)) }))),
+    ]);
+    return { spf, dmarc };
+  }
+
+  return { joinTxt, readCaa, parseAnswer, lookup, spfTree, findLookalikes, probeHttps, gatherSpoofability, gather };
 });

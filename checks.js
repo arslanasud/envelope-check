@@ -464,6 +464,54 @@
   }
 
   /**
+   * Turns a website probe into a result. The probe only tells us whether an
+   * encrypted connection was reachable, because browser security rules stop one
+   * site from reading another site's headers, status codes or redirects. So this
+   * never reports a failure, only "reachable" or "couldn't confirm", and always
+   * points to full external tools for the complete picture.
+   */
+  function checkWebsite(probe) {
+    const base = { id: "website", title: "Website security", plain: "Whether your website is reachable over an encrypted (HTTPS) connection." };
+    const tools = [
+      { label: "SSL Labs full report", href: "https://www.ssllabs.com/ssltest/" },
+      { label: "Mozilla Observatory", href: "https://developer.mozilla.org/en-US/observatory" },
+    ];
+    if (probe.https === "ok") {
+      return {
+        ...base, status: "pass", records: [], links: tools,
+        headline: "Your website is reachable over HTTPS",
+        detail: "We reached your site over an encrypted connection. This basic check can't read security headers, redirects or the certificate details from a browser, so use the full reports below to check those.",
+      };
+    }
+    return {
+      ...base, status: "unknown", records: [], links: tools,
+      headline: "We couldn't confirm HTTPS from here",
+      detail: "The connection didn't complete in this browser. That can mean the site has no HTTPS, but it can also be caused by the browser's cross-site security rules or a slow response, so this isn't proof of a problem. Use the full reports below to check properly.",
+    };
+  }
+
+  /**
+   * Reframes a forgery simulation for someone who has RECEIVED an email and wants
+   * to know whether that sender's domain can be easily faked. Used for the
+   * invoice-fraud check. The advice is given whatever the result, because a
+   * well-protected domain can still be abused through display names or lookalikes.
+   */
+  function checkSupplier(simulation) {
+    const advice = [
+      "Never change a payment or bank detail based on an email alone.",
+      "Confirm any such request by phone, using a number you already have and not one from the email.",
+      "Read the sender's address character by character, watching for lookalikes.",
+    ];
+    const map = {
+      blocked: { level: "pass", headline: "Hard to impersonate", detail: "This organisation's domain is set up so that a forged email claiming to be from it should be rejected. That's reassuring, but display-name tricks and lookalike domains can still catch you out." },
+      spam: { level: "warn", headline: "Partly protected", detail: "A forged email from this domain should be treated as suspicious and sent to spam, but it might still be seen. Treat money requests with caution." },
+      open: { level: "fail", headline: "Could be impersonated", detail: "This organisation's domain isn't set up to stop forged email, so someone could send a message that looks like it comes from them. Be very careful with anything about money or bank details." },
+      unknown: { level: "unknown", headline: "We couldn't check this domain", detail: "A lookup didn't complete, so try again in a minute." },
+    };
+    return { ...map[simulation.outcome.level], advice, outcome: simulation.outcome.level };
+  }
+
+  /**
    * Works out what public records would tell a mail system about a forged email
    * that claims to be from this domain. Nothing is sent. Every mail system makes
    * its own final decision, so the page describes this as a simulation.
@@ -633,5 +681,5 @@
     return { domain, provider, noMail, checks, extras, verdict, simulation, plan: buildPlan(checks) };
   }
 
-  return { DKIM_SELECTORS, normalizeDomain, dmarcCandidates, detectProvider, isNullMx, spfTerms, dkimKeyInfo, checkSpf, checkDmarc, checkDkim, checkMtaSts, checkTlsRpt, checkDnssec, checkCaa, simulateForgery, buildPlan, summarise, compareSummaries, buildHandover, lookalikeCandidates, buildReport };
+  return { DKIM_SELECTORS, normalizeDomain, dmarcCandidates, detectProvider, isNullMx, spfTerms, dkimKeyInfo, checkSpf, checkDmarc, checkDkim, checkMtaSts, checkTlsRpt, checkDnssec, checkCaa, checkWebsite, checkSupplier, simulateForgery, buildPlan, summarise, compareSummaries, buildHandover, lookalikeCandidates, buildReport };
 });

@@ -131,7 +131,15 @@ label[for="domain"] { font-weight: 700; }
 }
 
 /* Plan */
-.plan, .lookalikes { display: grid; gap: .8rem; padding: 1.35rem 1.4rem; background: var(--sheet); border: 1px solid var(--line); border-radius: 8px; }
+.plan, .lookalikes, .website, .supplier { display: grid; gap: .8rem; padding: 1.35rem 1.4rem; background: var(--sheet); border: 1px solid var(--line); border-radius: 8px; }
+.supplier .field input { flex: 1 1 15rem; min-width: 0; padding: .7rem .8rem; font: 1rem var(--mono); color: var(--ink); background: var(--paper); border: 2px solid var(--muted); border-radius: 5px; }
+.supplier-output:empty { display: none; }
+.supplier-result header { display: flex; flex-wrap: wrap; gap: .4rem 1rem; justify-content: space-between; align-items: flex-start; }
+.supplier-result[data-status="fail"] .headline { color: var(--fail); }
+.supplier-result[data-status="warn"] .headline { color: var(--warn); }
+.supplier-result[data-status="pass"] .headline { color: var(--pass); }
+.supplier-result .fix ul { margin: 0; padding-left: 1.3rem; display: grid; gap: .3rem; }
+.inline-error { color: var(--fail); font-weight: 700; }
 .plan-head { display: flex; flex-wrap: wrap; gap: .4rem 1rem; justify-content: space-between; align-items: baseline; }
 .plan-count { font-weight: 700; font-variant-numeric: tabular-nums; color: var(--muted); }
 .plan-list { display: grid; margin: 0; padding: 0; list-style: none; }
@@ -144,8 +152,8 @@ label[for="domain"] { font-weight: 700; }
 .handover-text { margin: .6rem 0; padding: .85rem; max-height: 20rem; overflow: auto; font: .8125rem/1.5 var(--mono); white-space: pre-wrap; overflow-wrap: anywhere; background: var(--code-bg); border-radius: 6px; }
 .secondary { justify-self: start; padding: .65rem 1rem; font: 700 .9375rem var(--body); color: var(--accent); background: transparent; border: 2px solid var(--accent); border-radius: 5px; cursor: pointer; }
 .secondary:disabled { cursor: progress; opacity: .75; }
-.lookalike-output { display: grid; gap: .6rem; }
-.lookalike-output:empty { display: none; }
+.lookalike-output, .website-output { display: grid; gap: .6rem; }
+.lookalike-output:empty, .website-output:empty { display: none; }
 .lookalike-list { display: grid; gap: .3rem; margin: 0; padding: 0; list-style: none; }
 .lookalike-list li { display: flex; flex-wrap: wrap; justify-content: space-between; gap: .2rem 1rem; padding: .45rem .7rem; background: var(--code-bg); border-radius: 5px; }
 .tag { font-size: .8125rem; font-weight: 700; color: var(--muted); }
@@ -187,3 +195,30 @@ code { font-family: var(--mono); font-size: .875rem; overflow-wrap: anywhere; }
 .copy { flex: none; justify-self: start; padding: .25rem .65rem; font: 700 .8125rem var(--body); color: var(--accent); background: transparent; border: 1px solid var(--accent); border-radius: 4px; cursor: pointer; }
 .links { font-size: .9375rem; }
 footer { display: grid; gap: .6rem; padding-top: 1.25rem; border-top: 1px solid var(--line); color: var(--muted); font-size: .9375rem; }
+
+/* Loading state, shown while the checks run. */
+.loading { display: grid; justify-items: center; gap: .6rem; padding: 2.5rem 1.25rem; text-align: center; background: var(--route-bg); color: var(--route-ink); border-radius: 10px; }
+.loading-env { width: 3.25rem; height: 2.35rem; }
+.loading-env .traveller { position: static; width: 100%; height: 100%; animation: none; }
+.loading-env .env-body { fill: var(--stamp-paper); }
+.loading-text { font: 800 1.25rem var(--display); }
+.loading .plan-note { color: var(--route-muted); }
+
+/* Animations. Each starts from a visible resting state and is disabled when the
+   viewer prefers reduced motion. */
+@media (prefers-reduced-motion: no-preference) {
+  .loading-env { animation: float 1.4s ease-in-out infinite; }
+  .reveal { animation: reveal .5s cubic-bezier(.22,.61,.36,1) both; }
+  .journey[data-outcome] .gate[data-state] .gate-mark { animation: pop .4s cubic-bezier(.34,1.56,.64,1) both; }
+  .gates .gate:nth-child(2) .gate-mark { animation-delay: 1s; }
+  .gates .gate:nth-child(3) .gate-mark { animation-delay: 1.9s; }
+  .gates .gate:nth-child(4) .gate-mark { animation-delay: 2.8s; }
+  .journey[data-outcome] .gate[data-state] .gate-label { animation: fade-in .4s ease-out both; }
+  .gates .gate:nth-child(2) .gate-label { animation-delay: 1.15s; }
+  .gates .gate:nth-child(3) .gate-label { animation-delay: 2.05s; }
+  .gates .gate:nth-child(4) .gate-label { animation-delay: 2.95s; }
+}
+@keyframes float { 0%, 100% { transform: translateY(-3px); } 50% { transform: translateY(3px); } }
+@keyframes reveal { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+@keyframes pop { 0% { transform: scale(.4); opacity: .3; } 100% { transform: scale(1); opacity: 1; } }
+@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }

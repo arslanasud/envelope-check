@@ -11,6 +11,8 @@ Many small organisations don't have a security team. Existing tools can show tha
 - **Fix plan:** Puts jobs in priority order, with progress saved in the person's own browser.
 - **Before and after:** Checking again shows what has improved since the last check on that browser.
 - **Handover message:** Creates a message to send to an IT provider.
+- **Basic website check:** An optional check of whether the website answers over HTTPS, with links to full external reports.
+- **Invoice-fraud check:** Lets someone paste the domain of an organisation emailing them about money, and shows whether that sender can be easily impersonated. Reads only public records.
 
 ## What it checks
 
@@ -36,6 +38,8 @@ It recognises Microsoft 365 and Google Workspace from the domain's MX records an
 - It reads public DNS only. It doesn't check mailboxes, passwords, MFA or Microsoft 365 settings.
 - The fake email journey is a simulation. Each mail system makes its own final decision.
 - The lookalike finder only tries a limited set of variations on the first part of the domain. A registered lookalike isn't necessarily malicious.
+- The website check only tells you whether HTTPS was reachable. Browser security rules (CORS) stop it reading another site's headers, redirects or certificate, so it links to full external tools instead. A proper check of those needs a backend service; see `docs/WEBSITE-CHECK-PLAN.md`.
+- It does not test websites or servers for vulnerabilities, and does not run port scans or any form of attack. It only reads public, passive signals.
 - A good result doesn't mean an organisation is fully protected.
 
 ## Privacy
