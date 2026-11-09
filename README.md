@@ -4,6 +4,14 @@ A free, open-source website that helps small charities and businesses check thei
 
 Many small organisations don't have a security team. Existing tools can show that a DNS record is missing, but it can still be hard to know what to do next. Envelope Check explains the result and gives steps based on the email service the domain appears to use.
 
+## Tools (tabs)
+
+- **Email & domain:** the main check, with the fake-email simulation, lookalike finder, fix plan and invoice-fraud check.
+- **Check a link:** reads a link's text for phishing warning signs (it never opens the link).
+- **Check a file:** works out a file's fingerprint (SHA-256) in the browser and looks it up on VirusTotal. The file never leaves the device.
+- **Passwords:** a password generator, plus a privacy-safe breach check using the Have I Been Pwned range API (the password never leaves the device).
+- **Security basics:** an interactive checklist for small organisations, saved in the browser.
+
 ## What makes it different
 
 - **Fake email journey:** A picture shows what public records tell mail systems about a forged email. No email is sent.
@@ -73,10 +81,20 @@ Your site will appear at `https://YOUR-USERNAME.github.io/envelope-check/`.
 | `tests/` | Automated tests |
 | `docs/HOW-IT-WORKS.md` | A walkthrough of the code |
 
+## Gmail add-on (true per-email check)
+
+A Google Workspace add-on in `gmail-addon/` reads each email's own authentication result and shows whether *that email* passed its security checks - a true per-email verdict, not just a domain check. See `gmail-addon/README.md`.
+
+## Browser extension
+
+An early Gmail browser extension lives in `extension/`. It shows a caution banner telling you whether an email sender's domain can be easily impersonated. See `extension/README.md` to load it. It reuses `checks.js` and `dns.js`; if you change those at the root, copy them into `extension/` again so the two stay in step.
+
 ## Roadmap
 
 - Add fix guides for more email services and DNS providers
 - Add a volunteer mode for people helping several organisations
+- Grow the Gmail extension, and add a true per-email check via the Gmail API / Microsoft Graph with the user's consent
+- Support Outlook / Microsoft 365
 
 ## Contributing and security
 

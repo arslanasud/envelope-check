@@ -4,38 +4,124 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Envelope Check</title>
-<meta name="description" content="A free check of the public email security settings for small organisations, with plain-English fixes.">
+<meta name="description" content="Free, plain-English cyber security tools for small organisations: email checks, link safety, password tools and a security checklist.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=JetBrains+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&family=Sora:wght@600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 <div class="airmail" aria-hidden="true"></div>
 <main class="wrap">
-  <header>
+  <header class="site-head">
     <p class="brand">Envelope Check</p>
-    <h1>Follow a fake email sent in your name.</h1>
-    <p class="lede">See how your domain's public settings would treat a forged email, spot lookalike domains, and get a fix plan you can follow or pass to your IT provider. It's free, and no email is sent.</p>
+    <p class="tagline">Free, plain-English cyber security tools for small charities and businesses. Everything runs in your browser.</p>
   </header>
-  <form id="check-form" class="envelope-form" novalidate>
-    <label for="domain">Your email domain</label>
-    <div class="field">
-      <input id="domain" name="domain" type="text" inputmode="url" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="yourcharity.org.uk" aria-describedby="domain-hint form-message">
-      <button id="check-button" type="submit">Follow the fake email</button>
+
+  <nav class="tabs" role="tablist" aria-label="Tools">
+    <button role="tab" id="t-email" aria-controls="tab-email" aria-selected="true">Email &amp; domain</button>
+    <button role="tab" id="t-link" aria-controls="tab-link" aria-selected="false" tabindex="-1">Check a link</button>
+    <button role="tab" id="t-file" aria-controls="tab-file" aria-selected="false" tabindex="-1">Check a file</button>
+    <button role="tab" id="t-pw" aria-controls="tab-pw" aria-selected="false" tabindex="-1">Passwords</button>
+    <button role="tab" id="t-basics" aria-controls="tab-basics" aria-selected="false" tabindex="-1">Security basics</button>
+  </nav>
+
+  <section id="tab-email" class="panel" role="tabpanel" aria-labelledby="t-email">
+    <div class="panel-head">
+      <h1>Follow a fake email sent in your name.</h1>
+      <p class="lede">See how your domain's public settings would treat a forged email, spot lookalike domains, and get a fix plan you can follow or pass to your IT provider. No email is sent.</p>
     </div>
-    <p id="domain-hint" class="hint">Use the part after the @ in your email address. We only read public DNS records.</p>
-    <p id="form-message" role="alert"></p>
-  </form>
-  <section id="results" aria-live="polite" aria-label="Results"></section>
+    <form id="check-form" class="envelope-form" novalidate>
+      <label for="domain">Your email domain</label>
+      <div class="field">
+        <input id="domain" name="domain" type="text" inputmode="url" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="yourcharity.org.uk" aria-describedby="domain-hint form-message">
+        <button id="check-button" type="submit">Follow the fake email</button>
+      </div>
+      <p id="domain-hint" class="hint">Use the part after the @ in your email address. We only read public DNS records.</p>
+      <p id="form-message" role="alert"></p>
+    </form>
+    <section id="results" aria-live="polite" aria-label="Results"></section>
+  </section>
+
+  <section id="tab-link" class="panel" role="tabpanel" aria-labelledby="t-link" hidden>
+    <div class="panel-head">
+      <h1>Is this link safe to open?</h1>
+      <p class="lede">Paste a link from an email or message and we'll point out common warning signs. We read the link's text only - we never open it.</p>
+    </div>
+    <div class="tool-card">
+      <label for="link-input">Paste the link</label>
+      <div class="field">
+        <input id="link-input" type="text" inputmode="url" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="https://example.com/login">
+        <button id="link-button" type="button">Check this link</button>
+      </div>
+      <p class="hint">Don't type passwords or personal details here - just the link.</p>
+      <div id="link-output" aria-live="polite"></div>
+    </div>
+  </section>
+
+  <section id="tab-file" class="panel" role="tabpanel" aria-labelledby="t-file" hidden>
+    <div class="panel-head">
+      <h1>Is this file dangerous?</h1>
+      <p class="lede">Check a file against VirusTotal's database of known malware. Your file never leaves your device - only its fingerprint is looked up.</p>
+    </div>
+    <div class="tool-card">
+      <label for="file-input">Choose a file to fingerprint</label>
+      <input id="file-input" type="file">
+      <p class="hint">We read the file only to work out its fingerprint (a SHA-256 hash) in your browser. Nothing is uploaded by this tool.</p>
+      <div id="file-output" aria-live="polite"></div>
+    </div>
+  </section>
+
+  <section id="tab-pw" class="panel" role="tabpanel" aria-labelledby="t-pw" hidden>
+    <div class="panel-head">
+      <h1>Password tools</h1>
+      <p class="lede">Create strong passwords, and check whether a password has turned up in a known data breach - without it ever leaving your device.</p>
+    </div>
+    <div class="tool-card">
+      <h2>Make a strong password</h2>
+      <div class="gen-controls">
+        <div class="radio-row">
+          <label><input type="radio" name="gen-mode" value="words" checked> Memorable words</label>
+          <label><input type="radio" name="gen-mode" value="chars"> Random characters</label>
+        </div>
+        <label class="range-row">Length <input id="gen-length" type="range" min="4" max="8" value="6"> <span id="gen-length-label">6 words</span></label>
+        <label hidden><input id="gen-symbols" type="checkbox"> Include symbols</label>
+      </div>
+      <div class="field"><button id="gen-button" type="button" class="secondary">Generate another</button></div>
+      <div id="gen-output" aria-live="polite"></div>
+    </div>
+    <div class="tool-card">
+      <h2>Has a password been breached?</h2>
+      <p class="hint">Your password never leaves your device. Only a short, scrambled fingerprint of it is sent, which can't be reversed. Still, don't check a password you're about to keep using - test ones like it instead.</p>
+      <div class="field">
+        <input id="pw-input" type="password" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="Type a password">
+        <button id="pw-check" type="button">Check</button>
+      </div>
+      <label class="check-inline"><input id="pw-show" type="checkbox"> Show password</label>
+      <div id="pw-output" aria-live="polite"></div>
+    </div>
+  </section>
+
+  <section id="tab-basics" class="panel" role="tabpanel" aria-labelledby="t-basics" hidden>
+    <div class="panel-head">
+      <h1>Security basics</h1>
+      <p class="lede">The essentials that protect a small organisation most, for the least effort. Tick them off as you go - your progress is saved only in this browser.</p>
+    </div>
+    <div class="tool-card">
+      <div class="plan-head"><h2>Your checklist</h2><p id="basics-count" class="plan-count"></p></div>
+      <ul id="basics-list" class="basics-list"></ul>
+    </div>
+  </section>
+
   <footer>
-    <p><strong>What this checks:</strong> Public DNS settings for SPF, DKIM at common names, DMARC, MTA-STS, TLS reporting, DNSSEC and CAA, plus lookalike domain names if you ask. It doesn't scan your systems or test your mailboxes, passwords or Microsoft 365 settings, so a good result doesn't mean you're fully protected.</p>
-    <p><strong>Privacy:</strong> We don't run a server or collect your results. Your fix progress and last result stay in this browser. Your browser asks Cloudflare DNS, or Google Public DNS as a backup, to look up the domain. Fonts load from Google Fonts.</p>
-    <p>Check any changes with your IT provider before you make them. <a href="https://github.com/arslanasud/envelope-check" target="_blank" rel="noopener noreferrer">View the open-source code</a>.</p>
+    <p><strong>Privacy:</strong> There's no account and no results database. The email and breach checks ask public services (Cloudflare or Google DNS, and the Have I Been Pwned range API) from your browser. Your checklist and passwords stay on your device.</p>
+    <p>Check any changes with your IT provider first. <a href="https://github.com/arslanasud/envelope-check" target="_blank" rel="noopener noreferrer">View the open-source code</a>.</p>
   </footer>
 </main>
 <script src="checks.js"></script>
 <script src="dns.js"></script>
 <script src="app.js"></script>
+<script src="tools.js"></script>
+<script src="tools-ui.js"></script>
 </body>
 </html>

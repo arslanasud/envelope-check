@@ -92,8 +92,23 @@
     return svg;
   }
 
+  function replayJourney(journey) {
+    if (!journey) return;
+    journey.classList.remove("play");
+    void journey.offsetWidth; // force a reflow so the animation restarts
+    journey.classList.add("play");
+    const score = results.querySelector(".score");
+    if (score) {
+      const fg = score.querySelector(".ring-fg");
+      if (fg) fg.style.strokeDashoffset = fg.getAttribute("data-full");
+      animateScore(score);
+    }
+  }
+
   function renderJourney(report) {
     const sim = report.simulation;
+    const replay = el("button", { type: "button", class: "replay" }, "▶ Replay animation");
+    replay.addEventListener("click", () => replayJourney(replay.closest(".journey")));
     return el("section", { class: "journey", "data-outcome": sim.outcome.level, "aria-label": "Fake email simulation" },
       el("p", { class: "eyebrow" }, "Simulation. No email was sent"),
       el("h2", { tabindex: "-1", id: "verdict" }, sim.outcome.title),
@@ -112,7 +127,56 @@
             el("span", { class: "gate-text" }, gate.text))),
           el("li", { class: "gate gate-end" },
             el("span", { class: "postmark" }, sim.outcome.stamp)))),
+      replay,
       el("p", { class: "caveat" }, "Each mail system makes its own final decision. This doesn't cover lookalike domains, hacked mailboxes or fake display names."));
+  }
+
+  // An animated ring summarising how many clear-cut checks are passing.
+  function renderScore(report) {
+    const all = report.checks.concat(report.extras);
+    const scored = all.filter((c) => c.status === "pass" || c.status === "warn" || c.status === "fail");
+    const pass = scored.filter((c) => c.status === "pass").length;
+    const total = scored.length;
+    if (!total) return null;
+    const R = 54;
+    const circumference = 2 * Math.PI * R;
+    const ns = "http://www.w3.org/2000/svg";
+    const mk = (tag, attrs) => {
+      const node = document.createElementNS(ns, tag);
+      Object.entries(attrs).forEach(([k, v]) => node.setAttribute(k, v));
+      return node;
+    };
+    const svg = mk("svg", { viewBox: "0 0 120 120", class: "score-ring", "aria-hidden": "true" });
+    svg.append(mk("circle", { cx: 60, cy: 60, r: R, class: "ring-bg" }));
+    const fg = mk("circle", { cx: 60, cy: 60, r: R, class: "ring-fg", "data-target": String(circumference * (1 - pass / total)), "data-full": String(circumference) });
+    fg.style.strokeDasharray = String(circumference);
+    fg.style.strokeDashoffset = String(circumference);
+    svg.append(fg);
+    const num = el("span", { class: "score-num", "data-to": String(pass) }, "0");
+    return el("div", { class: "score", "data-status": report.verdict.level, role: "img", "aria-label": `${pass} of ${total} clear-cut checks passing` },
+      el("div", { class: "score-ring-wrap" }, svg, el("div", { class: "score-center" }, num, el("span", { class: "score-of" }, "of " + total))),
+      el("div", { class: "score-text" },
+        el("h2", {}, "Checks passing"),
+        el("p", {}, "How many of the clear-cut public checks on this page are passing right now. It's a quick summary, not a full security rating.")));
+  }
+
+  function animateScore(score) {
+    if (!score) return;
+    const reduce = typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const fg = score.querySelector(".ring-fg");
+    if (fg) {
+      const target = fg.getAttribute("data-target");
+      if (reduce) fg.style.strokeDashoffset = target;
+      else requestAnimationFrame(() => { fg.style.strokeDashoffset = target; });
+    }
+    const num = score.querySelector(".score-num");
+    if (num) {
+      const to = Number(num.getAttribute("data-to"));
+      if (reduce || to === 0) { num.textContent = String(to); return; }
+      let current = 0;
+      const step = () => { current += 1; num.textContent = String(current); if (current < to) setTimeout(step, 170); };
+      setTimeout(step, 300);
+    }
   }
 
   function renderHistory(report, previous) {
@@ -318,6 +382,7 @@
         el("p", { class: "summary-verdict" }, el("strong", {}, report.verdict.title + ". "), report.verdict.text),
         context ? el("p", { class: "context" }, context) : null,
         renderHistory(report, previous)),
+      renderScore(report),
       renderJourney(report),
       renderPlan(report, isExample),
       isExample ? null : renderLookalikes(report),
@@ -338,6 +403,13 @@
         child.style.animationDelay = Math.min(i * 70, 560) + "ms";
       });
     }
+    // Play the journey animation and fill the score ring (for the example too, so
+    // the preview shows the motion when the page opens).
+    requestAnimationFrame(() => {
+      const journey = results.querySelector(".journey");
+      if (journey) journey.classList.add("play");
+      animateScore(results.querySelector(".score"));
+    });
   }
 
   form.addEventListener("submit", async (event) => {
